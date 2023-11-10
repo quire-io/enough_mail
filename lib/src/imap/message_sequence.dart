@@ -1,11 +1,18 @@
+// ignore_for_file: avoid_returning_this
+
 import 'dart:collection';
+
+import 'package:json_annotation/json_annotation.dart';
 
 import '../exception.dart';
 import '../mime_message.dart';
 
+part 'message_sequence.g.dart';
+
 /// Defines a list of message IDs.
 ///
 /// IDs can be either be based on sequence IDs or on UIDs.
+@JsonSerializable()
 class MessageSequence {
   /// Creates a new message sequence.
   ///
@@ -142,6 +149,13 @@ class MessageSequence {
     return MessageSequence.fromRange(rangeStart < 1 ? 1 : rangeStart, rangeEnd,
         isUidSequence: isUidSequence);
   }
+
+  /// Creates a [MessageSequence] from the given [json]
+  factory MessageSequence.fromJson(Map<String, dynamic> json) =>
+      _$MessageSequenceFromJson(json);
+
+  /// Converts this [MessageSequence] to JSON
+  Map<String, dynamic> toJson() => _$MessageSequenceToJson(this);
 
   /// True when this sequence is consisting of UIDs
   final bool isUidSequence;
@@ -309,8 +323,11 @@ class MessageSequence {
   /// optionally skipping the first [skip] entries.
   /// When the [pageNumber] is 1 and the [pageSize] is equals or bigger
   /// than the [length] of this sequence, this sequence is returned.
-  MessageSequence subsequenceFromPage(int pageNumber, int pageSize,
-      {int skip = 0}) {
+  MessageSequence subsequenceFromPage(
+    int pageNumber,
+    int pageSize, {
+    int skip = 0,
+  }) {
     if (pageNumber == 1 && pageSize >= length) {
       return this;
     }

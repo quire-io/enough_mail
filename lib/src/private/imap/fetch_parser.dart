@@ -579,11 +579,26 @@ class FetchParser extends ResponseParser<FetchImapResult> {
       return null;
     }
     final children = addressValue.children!;
+    final mailboxName = _checkForNil(children[2].value);
+    final hostName = _checkForNil(children[3].value);
+    if (mailboxName == null && hostName == null) {
+      print('Warning: invalid mail address in $addressValue: '
+          'both mailboxName and hostName are null');
+      return null;
+    }
+    String? personalName = '';
+    try {
+      personalName = MailCodec.decodeHeader(_checkForNil(children[0].value));
+    } catch (e) {
+      print('Warning: invalid mail address in $addressValue: '
+          'personalName is invalid: $e');
+    }
     return MailAddress.fromEnvelope(
-        MailCodec.decodeHeader(_checkForNil(children[0].value)),
-        _checkForNil(children[1].value),
-        _checkForNil(children[2].value),
-        _checkForNil(children[3].value));
+      personalName: personalName,
+      //sourceRoute: _checkForNil(children[1].value),
+      mailboxName: mailboxName ?? '',
+      hostName: hostName ?? '',
+    );
   }
 
   String? _checkForNil(String? value) {

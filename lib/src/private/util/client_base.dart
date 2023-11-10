@@ -22,7 +22,9 @@ abstract class ClientBase {
   /// Creates a new base client
   ///
   /// Set [isLogEnabled] to `true` to see log output.
+  ///
   /// Set the [logName] for adding the name to each log entry.
+  ///
   /// [onBadCertificate] is an optional handler for unverifiable certificates.
   /// The handler receives the [X509Certificate], and can inspect it and decide
   /// (or let the user decide) whether to accept the connection or not.
@@ -89,9 +91,12 @@ abstract class ClientBase {
   /// Connects to the specified server.
   ///
   /// Specify [isSecure] if you do not want to connect to a secure service.
-  Future<ConnectionInfo> connectToServer(String host, int port,
-      {bool isSecure = true,
-      Duration timeout = const Duration(seconds: 10)}) async {
+  Future<ConnectionInfo> connectToServer(
+    String host,
+    int port, {
+    bool isSecure = true,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
     logApp('connecting to server $host:$port - '
         'secure: $isSecure, timeout: $timeout');
     connectionInfo = ConnectionInfo(host, port, isSecure: isSecure);
@@ -232,6 +237,7 @@ abstract class ClientBase {
         await previousWriteFuture;
       } catch (e, s) {
         print('Unable to await previous write '
+            // ignore: unawaited_futures
             'future $previousWriteFuture: $e $s');
         _writeFuture = null;
         rethrow;
