@@ -47,7 +47,8 @@ S: 235 Authentication succeeded
   String getBase64EncodedData(String base64Nonce) {
     // BASE64(USERNAME, " ",
     //        MD5((SECRET XOR opad),MD5((SECRET XOR ipad), NONCE)))
-    var password = utf8.encode(_password);
+    late List<int> password;
+    password = utf8.encode(_password);
     if (password.length > 64) {
       final passwordDigest = md5.convert(password);
       password = Uint8List.fromList(passwordDigest.bytes);
