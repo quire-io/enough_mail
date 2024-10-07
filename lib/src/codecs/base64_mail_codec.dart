@@ -138,7 +138,7 @@ class Base64MailCodec extends MailCodec {
       cleaned = buffer.toString();
     }
 
-    return base64.decode(cleaned);
+    return base64.decode(repairBase64(cleaned));
   }
 
   @override
@@ -184,4 +184,46 @@ class Base64MailCodec extends MailCodec {
 
     return buffer.toString();
   }
+}
+
+/// Repair a malformed Base64 [input]. The additional bits will be truncated.
+String repairBase64(
+    String input, {
+      String paddingChar = '=',
+      String alphabet =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+    }) {
+  var inputLength = input.length;
+  while (inputLength > 0 && input[inputLength - 1] == paddingChar) {
+    inputLength--;
+  }
+
+  if (inputLength == 0) {
+    return input;
+  }
+
+  final remainder = inputLength % 4;
+  final lastCharPos = inputLength - 1;
+  // Remainder = 0: No need to repair.
+  if (remainder == 0) {
+    return input;
+  }
+  // Remainder = 1: Impossible in theory. Should truncate all 6 bits.
+  if (remainder == 1) {
+    return input.substring(0, lastCharPos);
+  }
+
+  final lastChar = input[lastCharPos];
+  final base64Index = alphabet.indexOf(lastChar);
+  if (base64Index == -1) {
+    throw FormatException(
+        'Invalid Base64 character in input.', input, lastCharPos);
+  }
+
+  // Remainder = 3: Keep only the first 6 bits, truncate last 2 bits.
+  // Remainder = 2: Keep only the first 4 bits, truncate last 4 bits.
+  final mask = remainder == 3 ? ~0x3 : ~0xF;
+  return input.substring(0, lastCharPos) +
+      alphabet[base64Index & mask] +
+      paddingChar * (4 - remainder);
 }

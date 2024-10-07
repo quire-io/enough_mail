@@ -30,6 +30,15 @@ void main() {
       input = '=?US-ASCII?B?S2VpdGggTW9vcmU=?= <moore@cs.utk.edu>';
       expect(MailCodec.decodeHeader(input), 'Keith Moore <moore@cs.utk.edu>');
     });
+
+    test('encoding.Base64 with malformed bits', () {
+      var input = '3wJN/xf4bdhMFPWlugAAAABJRU5ErkJggm==';
+      expect(MailCodec.base64.decodeData(input),
+          base64Decode('3wJN/xf4bdhMFPWlugAAAABJRU5ErkJggg=='));
+      input = 'RU5UUkVHQUdSQVRJU1==';
+      expect(MailCodec.base64.decodeData(input),
+          base64Decode('RU5UUkVHQUdSQVRJUw=='));
+    });
   });
 
   group('Base64 encoding', () {
