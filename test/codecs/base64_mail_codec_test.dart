@@ -39,6 +39,14 @@ void main() {
       expect(MailCodec.base64.decodeData(input),
           base64Decode('RU5UUkVHQUdSQVRJUw=='));
     });
+
+    test('encoding.Base64 with spaces', () {
+      const input =
+          '3wJN/xf4bdhMFPWlug \r\n'
+          'AAAABJRU5ErkJggm==';
+      expect(MailCodec.base64.decodeData(input),
+          base64Decode('3wJN/xf4bdhMFPWlugAAAABJRU5ErkJggg=='));
+    });
   });
 
   group('Base64 encoding', () {
