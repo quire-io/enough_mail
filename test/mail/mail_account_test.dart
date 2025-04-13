@@ -15,9 +15,29 @@ void main() {
     expect(copy, original);
   }
 
-  group('Serialize', () {
+  group('Serialization', () {
+    test('Test ServerConfig', () async {
+      const originalServerConfig = ServerConfig(
+        type: ServerType.imap,
+        hostname: 'imap.example.com',
+        port: 993,
+        socketType: SocketType.ssl,
+        authentication: Authentication.passwordClearText,
+        usernameType: UsernameType.emailAddress,
+      );
+
+      final restoredServerConfig = ServerConfig.fromJson(
+        originalServerConfig.toJson(),
+      );
+
+      expect(
+        originalServerConfig.toJson(),
+        restoredServerConfig.toJson(),
+      );
+    });
+
     test('serialize account', () {
-      final original = MailAccount(
+      const original = MailAccount(
         email: 'test@domain.com',
         name: 'A name with "quotes"',
         outgoingClientDomain: 'outgoing.com',
@@ -31,9 +51,8 @@ void main() {
             authentication: Authentication.plain,
             usernameType: UsernameType.emailAddress,
           ),
-          authentication:
-              const PlainAuthentication('user@domain.com', 'secret'),
-          serverCapabilities: [const Capability('IMAP4')],
+          authentication: PlainAuthentication('user@domain.com', 'secret'),
+          serverCapabilities: [Capability('IMAP4')],
           pathSeparator: '/',
         ),
         outgoing: MailServerConfig(
@@ -45,11 +64,10 @@ void main() {
             authentication: Authentication.plain,
             usernameType: UsernameType.emailAddress,
           ),
-          authentication:
-              const PlainAuthentication('user@domain.com', 'secret'),
+          authentication: PlainAuthentication('user@domain.com', 'secret'),
         ),
         supportsPlusAliases: true,
-        aliases: [const MailAddress('just tester', 'alias@domain.com')],
+        aliases: [MailAddress('just tester', 'alias@domain.com')],
       );
       _compareAfterJsonSerialization(original);
     });
@@ -69,7 +87,7 @@ void main() {
         name: 'A name with "quotes"',
         outgoingClientDomain: 'outgoing.com',
         incoming: MailServerConfig(
-          serverConfig: ServerConfig(
+          serverConfig: const ServerConfig(
             type: ServerType.imap,
             hostname: 'imap.domain.com',
             port: 993,
@@ -86,13 +104,14 @@ void main() {
           pathSeparator: '/',
         ),
         outgoing: MailServerConfig(
-          serverConfig: ServerConfig(
-              type: ServerType.smtp,
-              hostname: 'smtp.domain.com',
-              port: 993,
-              socketType: SocketType.ssl,
-              authentication: Authentication.oauth2,
-              usernameType: UsernameType.emailAddress),
+          serverConfig: const ServerConfig(
+            type: ServerType.smtp,
+            hostname: 'smtp.domain.com',
+            port: 993,
+            socketType: SocketType.ssl,
+            authentication: Authentication.oauth2,
+            usernameType: UsernameType.emailAddress,
+          ),
           authentication: OauthAuthentication.from(
             'user@domain.com',
             tokenText,
@@ -119,11 +138,15 @@ void main() {
 "token_type": "Bearer"
 }''';
       final token = OauthToken.fromText(tokenText);
-      expect(token.accessToken,
-          'ya29.asldkjsaklKJKLSD_LSKDJKLSDJllkjkljsd9_2n32j3h2jkj');
+      expect(
+        token.accessToken,
+        'ya29.asldkjsaklKJKLSD_LSKDJKLSDJllkjkljsd9_2n32j3h2jkj',
+      );
       expect(token.expiresIn, 3599);
-      expect(token.refreshToken,
-          '1//09tw-sdkjskdSKJSDKF-L9Ir8GN-XJlyFkYRNLV_SKD,SDswekwl9wqekqmxsip2OS');
+      expect(
+        token.refreshToken,
+        '1//09tw-sdkjskdSKJSDKF-L9Ir8GN-XJlyFkYRNLV_SKD,SDswekwl9wqekqmxsip2OS',
+      );
       expect(token.scope, 'https://mail.google.com/');
       expect(token.tokenType, 'Bearer');
       expect(token.isExpired, isFalse);
@@ -132,67 +155,66 @@ void main() {
 
     test('serialize list of accounts', () {
       final accounts = [
-        MailAccount(
+        const MailAccount(
           email: 'test@domain.com',
           name: 'A name with "quotes"',
           userName: 'Andrea Ghez',
           outgoingClientDomain: 'outgoing.com',
           incoming: MailServerConfig(
             serverConfig: ServerConfig(
-                type: ServerType.imap,
-                hostname: 'imap.domain.com',
-                port: 993,
-                socketType: SocketType.ssl,
-                authentication: Authentication.plain,
-                usernameType: UsernameType.emailAddress),
-            authentication:
-                const PlainAuthentication('user@domain.com', 'secret'),
-            serverCapabilities: [const Capability('IMAP4')],
+              type: ServerType.imap,
+              hostname: 'imap.domain.com',
+              port: 993,
+              socketType: SocketType.ssl,
+              authentication: Authentication.plain,
+              usernameType: UsernameType.emailAddress,
+            ),
+            authentication: PlainAuthentication('user@domain.com', 'secret'),
+            serverCapabilities: [Capability('IMAP4')],
             pathSeparator: '/',
           ),
           outgoing: MailServerConfig(
             serverConfig: ServerConfig(
-                type: ServerType.smtp,
-                hostname: 'smtp.domain.com',
-                port: 993,
-                socketType: SocketType.ssl,
-                authentication: Authentication.plain,
-                usernameType: UsernameType.emailAddress),
-            authentication:
-                const PlainAuthentication('user@domain.com', 'secret'),
+              type: ServerType.smtp,
+              hostname: 'smtp.domain.com',
+              port: 993,
+              socketType: SocketType.ssl,
+              authentication: Authentication.plain,
+              usernameType: UsernameType.emailAddress,
+            ),
+            authentication: PlainAuthentication('user@domain.com', 'secret'),
           ),
         ),
-        MailAccount(
+        const MailAccount(
           email: 'test2@domain2.com',
           name: 'my second account',
           userName: 'First Last',
           outgoingClientDomain: 'outdomain.com',
           incoming: MailServerConfig(
             serverConfig: ServerConfig(
-                type: ServerType.imap,
-                hostname: 'imap.domain2.com',
-                port: 993,
-                socketType: SocketType.ssl,
-                authentication: Authentication.plain,
-                usernameType: UsernameType.emailAddress),
+              type: ServerType.imap,
+              hostname: 'imap.domain2.com',
+              port: 993,
+              socketType: SocketType.ssl,
+              authentication: Authentication.plain,
+              usernameType: UsernameType.emailAddress,
+            ),
             authentication:
-                const PlainAuthentication('user2@domain2.com', 'verysecret'),
-            serverCapabilities: [
-              const Capability('IMAP4'),
-              const Capability('IDLE')
-            ],
+                PlainAuthentication('user2@domain2.com', 'verysecret'),
+            serverCapabilities: [Capability('IMAP4'), Capability('IDLE')],
             pathSeparator: '/',
           ),
           outgoing: MailServerConfig(
             serverConfig: ServerConfig(
-                type: ServerType.smtp,
-                hostname: 'smtp.domain2.com',
-                port: 993,
-                socketType: SocketType.ssl,
-                authentication: Authentication.plain,
-                usernameType: UsernameType.emailAddress),
+              type: ServerType.smtp,
+              hostname: 'smtp.domain2.com',
+              port: 993,
+              socketType: SocketType.ssl,
+              authentication: Authentication.plain,
+              usernameType: UsernameType.emailAddress,
+            ),
             authentication:
-                const PlainAuthentication('user2@domain2.com', 'topsecret'),
+                PlainAuthentication('user2@domain2.com', 'topsecret'),
           ),
         ),
       ];

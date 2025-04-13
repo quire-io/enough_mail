@@ -15,6 +15,7 @@ class _SmtpSendBdatCommand extends SmtpCommand {
     this.fromEmail,
     this.recipientEmails, {
     required this.use8BitEncoding,
+    required this.supportUnicode,
   }) : super('MAIL FROM') {
     final binaryData = _codec.encode(getData());
     _chunks = chunkData(binaryData);
@@ -24,6 +25,7 @@ class _SmtpSendBdatCommand extends SmtpCommand {
   final String? fromEmail;
   final List<String> recipientEmails;
   final bool use8BitEncoding;
+  final bool supportUnicode;
   _BdatSequence _currentStep = _BdatSequence.mailFrom;
   int _recipientIndex = 0;
   late List<Uint8List> _chunks;
@@ -49,14 +51,22 @@ class _SmtpSendBdatCommand extends SmtpCommand {
       result.add(chunkData);
       startIndex += chunkSize;
     }
+
     return result;
   }
 
   @override
   String get command {
+    if (supportUnicode) {
+      print('supportUnicode $supportUnicode');
+      // cSpell:ignore SMTPUTF8
+
+      return 'MAIL FROM:<$fromEmail> SMTPUTF8';
+    }
     if (use8BitEncoding) {
       return 'MAIL FROM:<$fromEmail> BODY=8BITMIME';
     }
+
     return 'MAIL FROM:<$fromEmail>';
   }
 
@@ -68,13 +78,18 @@ class _SmtpSendBdatCommand extends SmtpCommand {
         _currentStep = _BdatSequence.rcptTo;
         _recipientIndex++;
         return SmtpCommandData(
-            _getRecipientToCommand(recipientEmails[0]), null);
+          _getRecipientToCommand(recipientEmails[0]),
+          null,
+        );
       case _BdatSequence.rcptTo:
         final index = _recipientIndex;
         if (index < recipientEmails.length) {
           _recipientIndex++;
+
           return SmtpCommandData(
-              _getRecipientToCommand(recipientEmails[index]), null);
+            _getRecipientToCommand(recipientEmails[index]),
+            null,
+          );
         } else if (response.type == SmtpResponseType.success) {
           return _getCurrentChunk();
         } else {
@@ -93,6 +108,7 @@ class _SmtpSendBdatCommand extends SmtpCommand {
     if (_chunkIndex >= _chunks.length) {
       _currentStep = _BdatSequence.done;
     }
+
     return SmtpCommandData(null, chunk);
   }
 
@@ -103,6 +119,7 @@ class _SmtpSendBdatCommand extends SmtpCommand {
     if (_currentStep == _BdatSequence.bdat) {
       return response.code == 354;
     }
+
     return (response.type != SmtpResponseType.success) ||
         (_currentStep == _BdatSequence.done);
   }
@@ -116,6 +133,7 @@ class SmtpSendBdatMailCommand extends _SmtpSendBdatCommand {
     MailAddress? from,
     List<String> recipientEmails, {
     required bool use8BitEncoding,
+    required bool supportUnicode,
   }) : super(
           () => message
               .renderMessage()
@@ -123,6 +141,7 @@ class SmtpSendBdatMailCommand extends _SmtpSendBdatCommand {
           from?.email ?? message.fromEmail,
           recipientEmails,
           use8BitEncoding: use8BitEncoding,
+          supportUnicode: supportUnicode,
         );
 
   /// The message to be sent
@@ -137,6 +156,7 @@ class SmtpSendBdatMailDataCommand extends _SmtpSendBdatCommand {
     MailAddress from,
     List<String> recipientEmails, {
     required bool use8BitEncoding,
+    required bool supportUnicode,
   }) : super(
           () => data
               .toString()
@@ -144,6 +164,7 @@ class SmtpSendBdatMailDataCommand extends _SmtpSendBdatCommand {
           from.email,
           recipientEmails,
           use8BitEncoding: use8BitEncoding,
+          supportUnicode: supportUnicode,
         );
 
   /// The message data to be sent
@@ -158,11 +179,13 @@ class SmtpSendBdatMailTextCommand extends _SmtpSendBdatCommand {
     MailAddress from,
     List<String> recipientEmails, {
     required bool use8BitEncoding,
+    required bool supportUnicode,
   }) : super(
           () => data,
           from.email,
           recipientEmails,
           use8BitEncoding: use8BitEncoding,
+          supportUnicode: supportUnicode,
         );
 
   /// The message text data

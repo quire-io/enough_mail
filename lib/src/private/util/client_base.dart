@@ -81,7 +81,9 @@ abstract class ClientBase {
 
   /// Is called after the initial connection has been established
   FutureOr<void> onConnectionEstablished(
-      ConnectionInfo connectionInfo, String serverGreeting);
+    ConnectionInfo connectionInfo,
+    String serverGreeting,
+  );
 
   /// Is called when the connection encountered an error
   void onConnectionError(dynamic error);
@@ -91,14 +93,19 @@ abstract class ClientBase {
   /// Connects to the specified server.
   ///
   /// Specify [isSecure] if you do not want to connect to a secure service.
+  ///
+  /// Specify [timeout] to specify a different timeout for the connection.
+  /// This defaults to 20 seconds.
   Future<ConnectionInfo> connectToServer(
     String host,
     int port, {
     bool isSecure = true,
-    Duration timeout = const Duration(seconds: 10),
+    Duration timeout = const Duration(seconds: 20),
   }) async {
-    logApp('connecting to server $host:$port - '
-        'secure: $isSecure, timeout: $timeout');
+    logApp(
+      'connecting to server $host:$port - '
+      'secure: $isSecure, timeout: $timeout',
+    );
     connectionInfo = ConnectionInfo(host, port, isSecure: isSecure);
     final socket = isSecure
         ? await SecureSocket.connect(
@@ -110,6 +117,7 @@ abstract class ClientBase {
     _greetingsCompleter = Completer<ConnectionInfo>();
     _isServerGreetingDone = false;
     connect(socket);
+
     return _greetingsCompleter.future;
   }
 
@@ -204,7 +212,6 @@ abstract class ClientBase {
   /// Disconnects from the service
   Future<void> disconnect() async {
     if (_isConnected) {
-      logApp('disconnecting');
       isLoggedIn = false;
       _isConnected = false;
       isSocketClosingExpected = true;
@@ -293,7 +300,7 @@ abstract class ClientBase {
   /// Logs the data
   void log(dynamic logObject, {bool isClient = true, String? initial}) {
     if (isLogEnabled) {
-      initial ??= (isClient == true) ? initialClient : initialServer;
+      initial ??= isClient ? initialClient : initialServer;
       if (logName != null) {
         print('$logName $initial: $logObject');
       } else {

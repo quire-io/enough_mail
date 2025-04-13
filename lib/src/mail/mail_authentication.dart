@@ -6,6 +6,7 @@ import '../discover/client_config.dart';
 import '../exception.dart';
 import '../imap/imap_client.dart';
 import '../pop/pop_client.dart';
+import '../private/util/non_nullable.dart';
 import '../smtp/smtp_client.dart';
 
 part 'mail_authentication.g.dart';
@@ -14,29 +15,31 @@ part 'mail_authentication.g.dart';
 /// Compare [PlainAuthentication] and [OauthAuthentication] for implementations.
 abstract class MailAuthentication {
   /// Creates a new authentication with the given [typeName]
-  const MailAuthentication(this.typeName);
+  const MailAuthentication(this.authentication);
 
   /// Creates a new [MailAuthentication] from the given [json]
   factory MailAuthentication.fromJson(Map<String, dynamic> json) {
-    final typeName = json['typeName'];
-    switch (typeName) {
-      case _typePlain:
+    final authentication = json['authentication'] ?? json['typeName'];
+    switch (authentication) {
+      case 'plain':
         return PlainAuthentication.fromJson(json);
-      case _typeOauth:
+      case 'oauth':
+      case 'oauth2':
         return OauthAuthentication.fromJson(json);
     }
     throw InvalidArgumentException(
-        'unsupported MailAuthentication type [$typeName]');
+      'unsupported MailAuthentication type [$authentication]',
+    );
   }
 
   /// Converts this [MailAuthentication] to JSON
   Map<String, dynamic> toJson();
 
-  static const String _typePlain = 'plain';
-  static const String _typeOauth = 'oauth';
+  /// The type of this authentication
+  final Authentication authentication;
 
-  /// The name of this authentication type, e.g. `plain` or `oauth`
-  final String typeName;
+  /// The name of this authentication type, e.g. `plain` or `oauth2`
+  String get typeName => authentication.name;
 
   /// Authenticates with the specified mail service
   Future<void> authenticate(
@@ -50,8 +53,7 @@ abstract class MailAuthentication {
 /// Base class for authentications with user-names
 abstract class UserNameBasedAuthentication extends MailAuthentication {
   /// Creates a new user name based auth
-  const UserNameBasedAuthentication(this.userName, String typeName)
-      : super(typeName);
+  const UserNameBasedAuthentication(this.userName, super.authentication);
 
   /// The user name
   final String userName;
@@ -66,7 +68,7 @@ class PlainAuthentication extends UserNameBasedAuthentication {
   /// Creates a new plain authentication
   /// with the given [userName] and [password].
   const PlainAuthentication(String userName, this.password)
-      : super(userName, MailAuthentication._typePlain);
+      : super(userName, Authentication.plain);
 
   /// Creates a new [PlainAuthentication] from the given [json]
   factory PlainAuthentication.fromJson(Map<String, dynamic> json) =>
@@ -81,19 +83,26 @@ class PlainAuthentication extends UserNameBasedAuthentication {
   final String password;
 
   @override
-  Future<void> authenticate(ServerConfig serverConfig,
-      {ImapClient? imap, PopClient? pop, SmtpClient? smtp}) async {
+  Future<void> authenticate(
+    ServerConfig serverConfig, {
+    ImapClient? imap,
+    PopClient? pop,
+    SmtpClient? smtp,
+  }) async {
     final name = userName;
     final pwd = password;
     switch (serverConfig.type) {
       case ServerType.imap:
-        await imap!.login(name, pwd);
+        await imap.toValueOrThrow('no [ImapClient] found').login(name, pwd);
         break;
       case ServerType.pop:
-        await pop!.login(name, pwd);
+        await pop.toValueOrThrow('no [PopClient] found').login(name, pwd);
         break;
       case ServerType.smtp:
-        final authMechanism = smtp!.serverInfo.supportsAuth(AuthMechanism.plain)
+        if (smtp == null) {
+          throw ArgumentError('no [SmtpClient] found');
+        }
+        final authMechanism = smtp.serverInfo.supportsAuth(AuthMechanism.plain)
             ? AuthMechanism.plain
             : smtp.serverInfo.supportsAuth(AuthMechanism.login)
                 ? AuthMechanism.login
@@ -102,7 +111,8 @@ class PlainAuthentication extends UserNameBasedAuthentication {
         break;
       default:
         throw InvalidArgumentException(
-            'Unknown server type ${serverConfig.typeName}');
+          'Unknown server type ${serverConfig.typeName}',
+        );
     }
   }
 
@@ -201,16 +211,10 @@ class OauthToken {
   bool get isExpired => expiresDateTime.isBefore(DateTime.now().toUtc());
 
   /// Checks if the token is already expired or will expire
-  /// within the given (positive) [duration].
-  bool willExpireIn(Duration duration) {
-    print(
-      'willExpireIn(): \n'
-      'expiresDateTime=$expiresDateTime, now=${DateTime.now().toUtc()},\n'
-      'duration=$duration, '
-      'compare=${DateTime.now().toUtc().subtract(duration)}',
-    );
-    return expiresDateTime.isBefore(DateTime.now().toUtc().subtract(duration));
-  }
+  /// within the given (positive) [duration], e.g.
+  /// `const Duration(minutes: 15)`.
+  bool willExpireIn(Duration duration) =>
+      expiresDateTime.isBefore(DateTime.now().toUtc().add(duration));
 
   /// Retrieves the expiry date time
   ///
@@ -242,7 +246,7 @@ class OauthToken {
 class OauthAuthentication extends UserNameBasedAuthentication {
   /// Creates a new authentication
   const OauthAuthentication(String userName, this.token)
-      : super(userName, MailAuthentication._typeOauth);
+      : super(userName, Authentication.oauth2);
 
   /// Creates a new [OauthAuthentication] from the given [json]
   factory OauthAuthentication.fromJson(Map<String, dynamic> json) =>
@@ -258,6 +262,7 @@ class OauthAuthentication extends UserNameBasedAuthentication {
     String? provider,
   }) {
     final token = OauthToken.fromText(oauthTokenText, provider: provider);
+
     return OauthAuthentication(userName, token);
   }
 
@@ -280,17 +285,24 @@ class OauthAuthentication extends UserNameBasedAuthentication {
     final accessToken = token.accessToken;
     switch (serverConfig.type) {
       case ServerType.imap:
-        await imap!.authenticateWithOAuth2(userName, accessToken);
+        await imap
+            .toValueOrThrow('no [ImapClient] found')
+            .authenticateWithOAuth2(userName, accessToken);
         break;
       case ServerType.pop:
-        await pop!.login(userName, accessToken);
+        await pop
+            .toValueOrThrow('no [PopClient] found')
+            .login(userName, accessToken);
         break;
       case ServerType.smtp:
-        await smtp!.authenticate(userName, accessToken, AuthMechanism.xoauth2);
+        await smtp
+            .toValueOrThrow('no [SmtpClient] found')
+            .authenticate(userName, accessToken, AuthMechanism.xoauth2);
         break;
       default:
         throw InvalidArgumentException(
-            'Unknown server type ${serverConfig.typeName}');
+          'Unknown server type ${serverConfig.typeName}',
+        );
     }
   }
 

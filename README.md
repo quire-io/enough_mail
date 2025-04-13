@@ -9,7 +9,7 @@ Add this dependency your pubspec.yaml file:
 
 ```
 dependencies:
-  enough_mail: ^2.1.1
+  enough_mail: ^2.1.5
 ```
 The latest version or `enough_mail` is [![enough_mail version](https://img.shields.io/pub/v/enough_mail.svg)](https://pub.dartlang.org/packages/enough_mail).
 
@@ -276,6 +276,12 @@ This is how you contribute:
 
 Thank you in advance!
 
+## Thanks to all Contributors!!
+<a href="https://github.com/Enough-Software/enough_mail/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Enough-Software/enough_mail" />
+</a>
+
+
 ## Features
 ### Base standards
 * ✅ [IMAP4 rev1](https://tools.ietf.org/html/rfc3501) support 
@@ -308,6 +314,9 @@ The following SMTP extensions are supported:
 The following security extensions are supported:
 * ✅ Partial signing of messages using [DKIM](https://tools.ietf.org/html/rfc6376)
  
+### Other
+* ✅ [Mailto](https://tools.ietf.org/html/rfc6068) parsing mailto links
+* ✅ [Email provider auto-discovery](https://tools.ietf.org/html/rfc6186) Discover settings for an email address
 
 ### Supported encodings
 Character encodings:
