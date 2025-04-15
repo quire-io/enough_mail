@@ -1,12 +1,15 @@
 import 'dart:convert' as convert;
 import 'dart:typed_data';
 
+import "package:logging/logging.dart" show Logger;
 import 'package:enough_convert/enough_convert.dart';
 
 import '../mail_conventions.dart';
 import '../private/util/ascii_runes.dart';
 import 'base64_mail_codec.dart';
 import 'quoted_printable_mail_codec.dart';
+
+final _logger = Logger('codec');
 
 /// The used header encoding mechanism
 enum HeaderEncoding {
@@ -250,14 +253,14 @@ abstract class MailCodec {
 
       final codec = _charsetCodecsByName[characterEncodingName]?.call();
       if (codec == null) {
-        print('Error: no encoding found for [$characterEncodingName].');
+        _logger.warning('No encoding found for [$characterEncodingName].');
         buffer.write(reminder);
 
         return;
       }
       final decoder = _textDecodersByName[decoderName];
       if (decoder == null) {
-        print('Error: no decoder found for [$decoderName].');
+        _logger.warning('No decoder found for [$decoderName].');
         buffer.write(reminder);
 
         return;
@@ -303,7 +306,7 @@ abstract class MailCodec {
     final tEncoding = transferEncoding ?? contentTransferEncodingNone;
     final decoder = _binaryDecodersByName[tEncoding.toLowerCase()];
     if (decoder == null) {
-      print('Error: no binary decoder found for [$tEncoding].');
+      _logger.warning('No binary decoder found for [$tEncoding].');
 
       return Uint8List.fromList(text.codeUnits);
     }
@@ -343,7 +346,7 @@ abstract class MailCodec {
       final cs = charset ?? 'utf8';
       final codec = _charsetCodecsByName[cs.toLowerCase()]?.call();
       if (codec == null) {
-        print('Error: no encoding found for charset [$cs].');
+        _logger.warning('No encoding found for charset [$cs].');
 
         return encodingUtf8.decode(data, allowMalformed: true);
       }
@@ -365,7 +368,7 @@ abstract class MailCodec {
     final transferEnc = transferEncoding ?? contentTransferEncodingNone;
     final decoder = _textDecodersByName[transferEnc.toLowerCase()];
     if (decoder == null) {
-      print('Error: no decoder found for '
+      _logger.warning('No decoder found for '
           'content-transfer-encoding [$transferEnc].');
 
       return text;
@@ -373,8 +376,7 @@ abstract class MailCodec {
     final cs = charset ?? 'utf8';
     var codec = _charsetCodecsByName[cs.toLowerCase()]?.call();
     if (codec == null) {
-      print('Error: no encoding found for charset [$cs].');
-
+      _logger.warning('No encoding found for charset [$cs].');
       codec = encodingUtf8;
     }
 

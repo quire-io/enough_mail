@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import "package:logging/logging.dart" show Logger;
+
 import '../mail_conventions.dart';
 import '../private/util/ascii_runes.dart';
 import 'mail_codec.dart';
+
+final _logger = Logger('codec');
 
 /// Provides quoted printable encoder and decoder.
 ///
@@ -199,7 +203,7 @@ class QuotedPrintableMailCodec extends MailCodec {
         final hexText = cleaned.substring(i + 1, i + 3);
         var charCode = int.tryParse(hexText, radix: 16);
         if (charCode == null) {
-          print('unable to decode quotedPrintable [$cleaned]: '
+          _logger.warning('unable to decode quotedPrintable [$cleaned]: '
               'invalid hex code [$hexText] at $i.');
           buffer.write(hexText);
         } else {
@@ -215,7 +219,7 @@ class QuotedPrintableMailCodec extends MailCodec {
             final decoded = codec.decode(charCodes);
             buffer.write(decoded);
           } on FormatException catch (err) {
-            print('unable to decode quotedPrintable buffer: ${err.message}');
+            _logger.warning('unable to decode quotedPrintable buffer: ${err.message}');
             buffer.write(String.fromCharCodes(charCodes));
           }
         }

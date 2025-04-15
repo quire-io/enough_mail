@@ -1,3 +1,9 @@
+library;
+
+import "package:logging/logging.dart" show Logger;
+
+final _logger = Logger('codec');
+
 /// Encodes and decodes dates according to MIME requirements.
 class DateCodec {
   // do not allow instantiation
@@ -482,25 +488,25 @@ Date and time values occur in several header fields.  This section
     }
     final dayOfMonth = int.tryParse(dayText);
     if (dayOfMonth == null || dayOfMonth < 1 || dayOfMonth > 31) {
-      print('Invalid day $dayText in date $dateText');
+      _logger.warning('Invalid day $dayText in date $dateText');
 
       return null;
     }
     final month = _monthsByName[monthText.toLowerCase()];
     if (month == null) {
-      print('Invalid month $monthText in date $dateText');
+      _logger.warning('Invalid month $monthText in date $dateText');
 
       return null;
     }
     final year = int.tryParse(yearText.length == 2 ? '20$yearText' : yearText);
     if (year == null) {
-      print('Invalid year $yearText in date $dateText');
+      _logger.warning('Invalid year $yearText in date $dateText');
 
       return null;
     }
     final timeParts = timeText.split(':');
     if (timeParts.length < 2) {
-      print('Invalid time $timeText in date $dateText');
+      _logger.warning('Invalid time $timeText in date $dateText');
 
       return null;
     }
@@ -511,7 +517,7 @@ Date and time values occur in several header fields.  This section
       second = int.tryParse(timeParts[2]);
     }
     if (hour == null || minute == null || second == null) {
-      print('Invalid time $timeText in date $dateText');
+      _logger.warning('Invalid time $timeText in date $dateText');
 
       return null;
     }
@@ -523,7 +529,7 @@ Date and time values occur in several header fields.  This section
         // source: https://en.wikipedia.org/wiki/List_of_time_zone_abbreviations
         final zoneOffset = _timeZonesByName[zoneText];
         if (zoneOffset == null) {
-          print('warning: invalid time zone [$zoneText] in $dateText');
+          _logger.warning('Invalid time zone [$zoneText] in $dateText');
         }
         zoneText = zoneOffset ?? '+0000';
       }
@@ -531,7 +537,7 @@ Date and time values occur in several header fields.  This section
     final timeZoneHours = int.tryParse(zoneText.substring(1, 3));
     final timeZoneMinutes = int.tryParse(zoneText.substring(3));
     if (timeZoneHours == null || timeZoneMinutes == null) {
-      print('invalid time zone $zoneText in $dateText');
+      _logger.warning('Invalid time zone $zoneText in $dateText');
 
       return null;
     }
