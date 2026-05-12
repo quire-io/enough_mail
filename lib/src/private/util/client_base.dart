@@ -29,10 +29,16 @@ abstract class ClientBase {
   /// The handler receives the [X509Certificate], and can inspect it and decide
   /// (or let the user decide) whether to accept the connection or not.
   /// The handler should return true to continue the [SecureSocket] connection.
+  ///
+  /// [securityContext] is an optional security context for mTLS
+  /// (mutual TLS / client certificate authentication).
+  /// Create a [SecurityContext] with `useCertificateChain()` and
+  /// `usePrivateKey()` to enable client certificate authentication.
   ClientBase({
     this.isLogEnabled = false,
     this.logName,
     this.onBadCertificate,
+    this.securityContext,
   });
 
   /// Initial for a client log output
@@ -76,6 +82,12 @@ abstract class ClientBase {
   /// The handler should return true to continue the [SecureSocket] connection.
   final bool Function(X509Certificate)? onBadCertificate;
 
+  /// Optional [SecurityContext] for mTLS (mutual TLS).
+  ///
+  /// When set, it is passed to [SecureSocket.connect] and
+  /// [SecureSocket.secure] to enable client certificate authentication.
+  final SecurityContext? securityContext;
+
   /// Is called when data is received
   void onDataReceived(Uint8List data);
 
@@ -112,6 +124,7 @@ abstract class ClientBase {
             host,
             port,
             onBadCertificate: onBadCertificate,
+            context: securityContext,
           ).timeout(timeout)
         : await Socket.connect(host, port).timeout(timeout);
     _greetingsCompleter = Completer<ConnectionInfo>();
@@ -177,7 +190,11 @@ abstract class ClientBase {
   /// Upgrades the current connection to a secure socket
   Future<void> upgradeToSslSocket() async {
     _socketStreamSubscription.pause();
-    final secureSocket = await SecureSocket.secure(_socket);
+    final secureSocket = await SecureSocket.secure(
+      _socket,
+      context: securityContext,
+      onBadCertificate: onBadCertificate,
+    );
     logApp('now using secure connection.');
     await _socketStreamSubscription.cancel();
     isSocketClosingExpected = true;
@@ -243,9 +260,11 @@ abstract class ClientBase {
       try {
         await previousWriteFuture;
       } catch (e, s) {
-        print('Unable to await previous write '
-            // ignore: unawaited_futures
-            'future $previousWriteFuture: $e $s');
+        print(
+          'Unable to await previous write '
+          // ignore: unawaited_futures
+          'future $previousWriteFuture: $e $s',
+        );
         _writeFuture = null;
         rethrow;
       }
@@ -256,8 +275,9 @@ abstract class ClientBase {
     }
     _socket.write('$text\r\n');
 
-    final future =
-        timeout == null ? _socket.flush() : _socket.flush().timeout(timeout);
+    final future = timeout == null
+        ? _socket.flush()
+        : _socket.flush().timeout(timeout);
     _writeFuture = future;
     await future;
     _writeFuture = null;

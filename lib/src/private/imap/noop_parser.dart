@@ -27,8 +27,9 @@ class NoopParser extends ResponseParser<Mailbox?> {
     final box = mailbox;
     if (box != null) {
       box.isReadWrite = imapResponse.parseText.startsWith('OK [READ-WRITE]');
-      final highestModSequenceIndex =
-          imapResponse.parseText.indexOf('[HIGHESTMODSEQ ');
+      final highestModSequenceIndex = imapResponse.parseText.indexOf(
+        '[HIGHESTMODSEQ ',
+      );
       if (highestModSequenceIndex != -1) {
         box.highestModSequence = ParserHelper.parseInt(
           imapResponse.parseText,
@@ -48,7 +49,7 @@ class NoopParser extends ResponseParser<Mailbox?> {
       // example: 1234 EXPUNGE
       final id = parseInt(details, 0, ' ');
       if (id != null) {
-        imapClient.eventBus.fire(ImapExpungeEvent(id, imapClient));
+        imapClient.fireEvent(ImapExpungeEvent(id, imapClient));
       }
     } else if (details.startsWith('VANISHED (EARLIER) ')) {
       handledVanished(details, 'VANISHED (EARLIER) ', isEarlier: true);
@@ -66,7 +67,7 @@ class NoopParser extends ResponseParser<Mailbox?> {
 
         if (handled) {
           if (box.messagesExists != messagesExists) {
-            imapClient.eventBus.fire(
+            imapClient.fireEvent(
               ImapMessagesExistEvent(
                 box.messagesExists,
                 messagesExists,
@@ -74,7 +75,7 @@ class NoopParser extends ResponseParser<Mailbox?> {
               ),
             );
           } else if (box.messagesRecent != messagesRecent) {
-            imapClient.eventBus.fire(
+            imapClient.fireEvent(
               ImapMessagesRecentEvent(
                 box.messagesRecent,
                 messagesRecent,
@@ -88,9 +89,9 @@ class NoopParser extends ResponseParser<Mailbox?> {
           if (_fetchParser.parseUntagged(imapResponse, _fetchResponse)) {
             final mimeMessage = _fetchParser.lastParsedMessage;
             if (mimeMessage != null) {
-              imapClient.eventBus.fire(ImapFetchEvent(mimeMessage, imapClient));
+              imapClient.fireEvent(ImapFetchEvent(mimeMessage, imapClient));
             } else if (_fetchParser.vanishedMessages != null) {
-              imapClient.eventBus.fire(
+              imapClient.fireEvent(
                 ImapVanishedEvent(
                   _fetchParser.vanishedMessages,
                   imapClient,
@@ -118,10 +119,8 @@ class NoopParser extends ResponseParser<Mailbox?> {
   void handledVanished(String details, String start, {bool isEarlier = false}) {
     final vanishedText = details.substring(start.length);
     final vanished = MessageSequence.parse(vanishedText, isUidSequence: true);
-    imapClient.eventBus.fire(ImapVanishedEvent(
-      vanished,
-      imapClient,
-      isEarlier: isEarlier,
-    ));
+    imapClient.fireEvent(
+      ImapVanishedEvent(vanished, imapClient, isEarlier: isEarlier),
+    );
   }
 }

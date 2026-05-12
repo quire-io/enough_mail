@@ -20,7 +20,7 @@ enum HeaderEncoding {
   B,
 
   /// No encoding
-  none
+  none,
 }
 
 /// Encodes and decodes base-64 and quoted printable encoded texts
@@ -121,21 +121,24 @@ abstract class MailCodec {
     'us-ascii': () => encodingAscii,
     'ascii': () => encodingAscii,
   };
-  static final _textDecodersByName = <String,
-      String Function(
-    String text,
-    convert.Encoding encoding, {
-    required bool isHeader,
-  })>{
-    'q': quotedPrintable.decodeText,
-    'quoted-printable': quotedPrintable.decodeText,
-    'b': base64.decodeText,
-    'base64': base64.decodeText,
-    'base-64': base64.decodeText,
-    '7bit': decodeOnlyCodec,
-    '8bit': decodeOnlyCodec,
-    contentTransferEncodingNone: decodeOnlyCodec,
-  };
+  static final _textDecodersByName =
+      <
+        String,
+        String Function(
+          String text,
+          convert.Encoding encoding, {
+          required bool isHeader,
+        })
+      >{
+        'q': quotedPrintable.decodeText,
+        'quoted-printable': quotedPrintable.decodeText,
+        'b': base64.decodeText,
+        'base64': base64.decodeText,
+        'base-64': base64.decodeText,
+        '7bit': decodeOnlyCodec,
+        '8bit': decodeOnlyCodec,
+        contentTransferEncodingNone: decodeOnlyCodec,
+      };
 
   static final _binaryDecodersByName = <String, Uint8List Function(String)>{
     'b': base64.decodeData,
@@ -168,10 +171,7 @@ abstract class MailCodec {
   /// [text] specifies the text to be encoded.
   /// Set the optional [fromStart] to true in case the encoding should
   /// start at the beginning of the text and not in the middle.
-  String encodeHeader(
-    String text, {
-    bool fromStart = false,
-  });
+  String encodeHeader(String text, {bool fromStart = false});
 
   /// Encodes the given [part] text.
   Uint8List decodeData(String part);
@@ -209,8 +209,8 @@ abstract class MailCodec {
         final searchText = containsEncodedWordsWithSpace
             ? '?= $startSequence'
             : containsEncodedWordsWithTab
-                ? '?=\t$startSequence'
-                : '?=$startSequence';
+            ? '?=\t$startSequence'
+            : '?=$startSequence';
         if (startSequence.endsWith('?B?') || startSequence.endsWith('?b?')) {
           // in base64 encoding there are 2 cases:
           // 1. individual parts can end  with the padding character "=":
@@ -245,8 +245,9 @@ abstract class MailCodec {
     while ((match = _headerEncodingExpression.firstMatch(reminder)) != null) {
       final sequence = match?.group(0) ?? '';
       final separatorIndex = sequence.indexOf('?', 3);
-      final characterEncodingName =
-          sequence.substring('=?'.length, separatorIndex).toLowerCase();
+      final characterEncodingName = sequence
+          .substring('=?'.length, separatorIndex)
+          .toLowerCase();
       final decoderName = sequence
           .substring(separatorIndex + 1, separatorIndex + 2)
           .toLowerCase();
@@ -396,8 +397,7 @@ abstract class MailCodec {
     String part,
     convert.Encoding codec, {
     bool isHeader = false,
-  }) =>
-      part;
+  }) => part;
 
   /// Wraps the text so that it stays within email's 76 characters
   /// per line convention.
@@ -410,16 +410,20 @@ abstract class MailCodec {
       return text;
     }
     final buffer = StringBuffer();
-    final runes = text.runes;
+    final runes = text.runes.toList(growable: false);
     int? lastRune;
     int? lastSpaceIndex;
     var currentLineLength = 0;
     var currentLineStartIndex = 0;
     for (var runeIndex = 0; runeIndex < runes.length; runeIndex++) {
-      final rune = runes.elementAt(runeIndex);
+      final rune = runes[runeIndex];
       if (rune == AsciiRunes.runeLineFeed &&
           lastRune == AsciiRunes.runeCarriageReturn) {
-        buffer.write(text.substring(currentLineStartIndex, runeIndex + 1));
+        buffer.write(
+          String.fromCharCodes(
+            runes.sublist(currentLineStartIndex, runeIndex + 1),
+          ),
+        );
         currentLineLength = 0;
         currentLineStartIndex = runeIndex + 1;
         lastSpaceIndex = null;
@@ -433,7 +437,7 @@ abstract class MailCodec {
           // edge case: this could be in the middle of a \r\n sequence:
           if (rune == AsciiRunes.runeCarriageReturn &&
               runeIndex < runes.length - 1 &&
-              runes.elementAt(runeIndex + 1) == AsciiRunes.runeLineFeed) {
+              runes[runeIndex + 1] == AsciiRunes.runeLineFeed) {
             lastRune = rune;
             continue; // the break will be handled in the next loop iteration
           }
@@ -444,7 +448,11 @@ abstract class MailCodec {
             endIndex++;
           }
           buffer
-            ..write(text.substring(currentLineStartIndex, endIndex))
+            ..write(
+              String.fromCharCodes(
+                runes.sublist(currentLineStartIndex, endIndex),
+              ),
+            )
             ..write('\r\n');
           currentLineLength = 0;
           currentLineStartIndex = endIndex;
@@ -454,8 +462,8 @@ abstract class MailCodec {
       lastRune = rune;
     }
 
-    if (currentLineStartIndex < text.length) {
-      buffer.write(text.substring(currentLineStartIndex));
+    if (currentLineStartIndex < runes.length) {
+      buffer.write(String.fromCharCodes(runes.sublist(currentLineStartIndex)));
     }
 
     return buffer.toString();

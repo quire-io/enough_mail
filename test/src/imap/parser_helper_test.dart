@@ -24,7 +24,8 @@ void main() {
   }); // test end
 
   test('ParserHelper.parseHeader', () {
-    const headerText = 'Return-Path: <marie.curie@domain.com>\r\n'
+    const headerText =
+        'Return-Path: <marie.curie@domain.com>\r\n'
         'Delivered-To: jane.goodall@domain.com\r\n'
         'Received: from mx2.domain.com ([10.20.30.2])\r\n'
         '        by imap.domain.com with LMTP\r\n'
@@ -53,7 +54,8 @@ void main() {
   });
 
   test('ParserHelper.parseHeader with body', () {
-    const headerText = 'Return-Path: <marie.curie@domain.com>\r\n'
+    const headerText =
+        'Return-Path: <marie.curie@domain.com>\r\n'
         'Delivered-To: jane.goodall@domain.com\r\n'
         'Received: from mx2.domain.com ([10.20.30.2])\r\n'
         '        by imap.domain.com with LMTP\r\n'

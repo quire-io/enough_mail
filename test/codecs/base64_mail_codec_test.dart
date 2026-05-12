@@ -7,7 +7,8 @@ import 'package:test/test.dart';
 void main() {
   group('Base64 decoding', () {
     test('encoding.iso-8859-1 base64 directly repeated', () {
-      const input = '=?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?==?ISO-'
+      const input =
+          '=?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?==?ISO-'
           '8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg==?=';
       expect(
         MailCodec.decodeHeader(input),

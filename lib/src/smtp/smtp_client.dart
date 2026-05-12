@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:event_bus/event_bus.dart';
-
 import '../mail_address.dart';
 import '../mime_data.dart';
 import '../mime_message.dart';
@@ -83,7 +81,7 @@ enum AuthMechanism {
   /// OAUTH 2.0 authentication
   ///
   /// Compare https://tools.ietf.org/html/rfc6750.
-  xoauth2
+  xoauth2,
 }
 
 /// Low-level SMTP library for Dart
@@ -94,50 +92,45 @@ class SmtpClient extends ClientBase {
   /// that is associated with your service's domain,
   /// e.g. `domain.com` or `enough.de`.
   ///
-  /// Set the [eventBus] to add your specific `EventBus`
-  /// to listen to SMTP events.
-  ///
   /// Set [isLogEnabled] to `true` to see log output.
   /// Set the [logName] for adding the name to each log entry.
   /// [onBadCertificate] is an optional handler for unverifiable certificates.
   /// The handler receives the [X509Certificate], and can inspect it and
   /// decide (or let the user decide) whether to accept the connection or not.
   /// The handler should return true to continue the [SecureSocket] connection.
+  ///
+  /// [securityContext] is an optional [SecurityContext] for mTLS
+  /// (mutual TLS / client certificate authentication).
   SmtpClient(
     String clientDomain, {
-    EventBus? bus,
     bool isLogEnabled = false,
     String? logName,
     bool Function(X509Certificate)? onBadCertificate,
-  })  : _eventBus = bus ?? EventBus(),
-        _clientDomain = clientDomain,
-        super(
-          isLogEnabled: isLogEnabled,
-          logName: logName,
-          onBadCertificate: onBadCertificate,
-        );
+    SecurityContext? securityContext,
+  }) : _clientDomain = clientDomain,
+       super(
+         isLogEnabled: isLogEnabled,
+         logName: logName,
+         onBadCertificate: onBadCertificate,
+         securityContext: securityContext,
+       );
 
   /// Information about the SMTP service
   late SmtpServerInfo serverInfo;
 
-  /// Allows to listens for events
+  /// Allows listening to events fired by this [SmtpClient].
   ///
-  /// If no event bus is specified in the constructor,
-  /// an asynchronous bus is used.
   /// Usage:
   /// ```dart
-  /// eventBus.on<SmtpConnectionLostEvent>().listen((event) {
-  ///   // All events are of type SmtpConnectionLostEvent (or subtypes of it).
-  ///   _log(event.type);
-  /// });
-  ///
-  /// eventBus.on<SmtpEvent>().listen((event) {
-  ///   // All events are of type SmtpEvent (or subtypes of it).
+  /// smtpClient.eventStream
+  ///   .whereType<SmtpConnectionLostEvent>()
+  ///   .listen((event) {
   ///   _log(event.type);
   /// });
   /// ```
-  EventBus get eventBus => _eventBus;
-  final EventBus _eventBus;
+  Stream<SmtpEvent> get eventStream => _eventController.stream;
+  final StreamController<SmtpEvent> _eventController =
+      StreamController<SmtpEvent>.broadcast();
 
   final String _clientDomain;
 
@@ -159,7 +152,9 @@ class SmtpClient extends ClientBase {
 
   @override
   void onConnectionError(dynamic error) {
-    eventBus.fire(SmtpConnectionLostEvent(this));
+    _eventController
+      ..add(SmtpConnectionLostEvent(this))
+      ..close();
   }
 
   @override
@@ -331,13 +326,15 @@ class SmtpClient extends ClientBase {
       throw SmtpException(this, SmtpResponse(['500 no recipients']));
     }
 
-    return sendCommand(SmtpSendBdatMailCommand(
-      message,
-      from,
-      recipientEmails,
-      use8BitEncoding: use8BitEncoding,
-      supportUnicode: supportUnicode,
-    ));
+    return sendCommand(
+      SmtpSendBdatMailCommand(
+        message,
+        from,
+        recipientEmails,
+        use8BitEncoding: use8BitEncoding,
+        supportUnicode: supportUnicode,
+      ),
+    );
   }
 
   /// Sends the specified message [data] [from] to the [recipients]

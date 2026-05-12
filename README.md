@@ -1,21 +1,26 @@
+# enough_mail
+
+**Maintenance fork of [enough_mail](https://pub.dev/packages/enough_mail)**
+
 IMAP, POP3 and SMTP clients for Dart and Flutter email developers.
 
 Available under the commercial friendly 
 [MPL Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/).
 
+## Key Fixes in this Fork
+* **Header Folding Fix**: Prevents invalid folding after `<` in headers, resolving common SpamAssassin errors like "Leading whitespace after '<'" and "unbalanced angle brackets".
 
 ## Installation
 Add this dependency your pubspec.yaml file:
 
-```
+```yaml
 dependencies:
-  enough_mail: ^2.1.7
+  enough_mail: ^2.2.0
 ```
-The latest version or `enough_mail` is [![enough_mail version](https://img.shields.io/pub/v/enough_mail.svg)](https://pub.dartlang.org/packages/enough_mail).
-
 
 ## API Documentation
 Check out the full API documentation at https://pub.dev/documentation/enough_mail/latest/
+
 
 ## High Level API Usage
 

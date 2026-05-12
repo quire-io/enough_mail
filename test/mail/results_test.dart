@@ -53,19 +53,13 @@ void main() {
         ..responseCode = 'COPYUID 14 400,401 17,18';
       final copyUid = result.responseCodeCopyUid;
       expect(copyUid, isNotNull);
-      expect(
-        copyUid?.originalSequence?.toList(),
-        [400, 401],
-      );
-      expect(
-        copyUid?.targetSequence.toList(),
-        [17, 18],
-      );
+      expect(copyUid?.originalSequence?.toList(), [400, 401]);
+      expect(copyUid?.targetSequence.toList(), [17, 18]);
       final undoResult = deleteResult.reverseWith(copyUid);
-      expect(
-        undoResult.targetMailbox?.flags,
-        [MailboxFlag.inbox, MailboxFlag.virtual],
-      );
+      expect(undoResult.targetMailbox?.flags, [
+        MailboxFlag.inbox,
+        MailboxFlag.virtual,
+      ]);
       expect(undoResult.originalSequence.toList(), [400, 401]);
       expect(undoResult.targetSequence?.toList(), [17, 18]);
       expect(messages[0].uid, 17);

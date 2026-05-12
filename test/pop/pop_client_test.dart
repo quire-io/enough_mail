@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:enough_mail/enough_mail.dart';
 import 'package:enough_mail/src/private/util/client_base.dart';
-import 'package:event_bus/event_bus.dart';
 import 'package:test/test.dart';
 
 import '../mock_socket.dart';
@@ -21,17 +20,16 @@ void main() {
     final envVars = Platform.environment;
     _isLogEnabled = envVars['SMTP_LOG'] == 'true';
 
-    client = PopClient(
-      logName: 'enough.de',
-      bus: EventBus(sync: true),
-      isLogEnabled: _isLogEnabled,
-    );
+    client = PopClient(logName: 'enough.de', isLogEnabled: _isLogEnabled);
 
     final connection = MockConnection();
     client.connect(
       connection.socketClient,
-      connectionInformation:
-          const ConnectionInfo('pop.enough.de', 995, isSecure: true),
+      connectionInformation: const ConnectionInfo(
+        'pop.enough.de',
+        995,
+        isSecure: true,
+      ),
     );
     _mockServer = MockPopServer(connection.socketServer);
     _mockServer.writeln('+OK ready <1896.697170952@dbc.mtview.ca.us>');
@@ -131,8 +129,10 @@ void main() {
   });
 
   test('PopClient.retrieve() simple message', () async {
-    const from =
-        MailAddress('Rita Levi-Montalcini', 'Rita.Levi-Montalcini@domain.com');
+    const from = MailAddress(
+      'Rita Levi-Montalcini',
+      'Rita.Levi-Montalcini@domain.com',
+    );
     final to = [
       const MailAddress('Rosalind Franklin', 'Rosalind.Franklin@domain.com'),
     ];

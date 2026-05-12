@@ -110,7 +110,8 @@ class QuotedPrintableMailCodec extends MailCodec {
         endIndex = text.length - 1;
       }
       // Available space for the current encoded word
-      var qpWordSize = MailConventions.encodedWordMaxLength -
+      var qpWordSize =
+          MailConventions.encodedWordMaxLength -
           qpWordDelimiterSize -
           startIndex -
           (nameLength + 2);
