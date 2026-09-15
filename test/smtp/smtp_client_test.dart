@@ -70,6 +70,31 @@ void main() {
     expect(client.serverInfo.supports('NOTTHERE'), isFalse);
   });
 
+  test('SmtpClient EHLO with bare reply code', () async {
+    // RFC 5321 section 4.2: the last reply line may consist of the code only
+    _mockServer.nextResponse = '250-domain.com Hello\r\n250';
+    final response = await client.ehlo();
+    expect(response.type, SmtpResponseType.success);
+    expect(response.code, 250);
+    expect(response.message, isEmpty);
+  });
+
+  test('SmtpClient AUTH XOAUTH2 with bare 334 challenge', () async {
+    // smtp.yandex.ru answers `AUTH XOAUTH2` (sent without an initial
+    // response) with an empty challenge written as `334<CRLF>` - no space
+    _mockServer.responses.addAll([
+      '334',
+      '235 2.7.0 Authentication successful',
+    ]);
+    final response = await client.authenticate(
+      'user@example.com',
+      'access-token',
+      AuthMechanism.xoauth2,
+    );
+    expect(response.type, SmtpResponseType.success);
+    expect(response.code, 235);
+  });
+
   test('SmtpClient login', () async {
     _mockServer.nextResponse = '235 2.7.0 Authentication successful';
     final response = await client.authenticate(_smtpUser, _smtpPassword);
